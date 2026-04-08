@@ -48,18 +48,12 @@ export default function Dashboard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ premium: data.premium, btcPrice: data.btcPrice })
       });
-      
       const json = await res.json();
       
-      // REMOVED THE FALLBACK. Now it will show exactly what the AI says.
-      if (json.summary) {
-        setAiText(json.summary);
-      } else {
-        // If there is an error, it will show the error message now
-        setAiText("API Response: " + JSON.stringify(json));
-      }
-    } catch (e: any) {
-      setAiText("Frontend Error: " + e.message);
+      // Simply show the summary provided by the API
+      setAiText(json.summary);
+    } catch (e) {
+      setAiText("Analysis service temporarily offline.");
     }
     setLoadingAi(false);
   };
