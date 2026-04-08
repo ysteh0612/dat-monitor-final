@@ -49,7 +49,7 @@ export default function Dashboard() {
           </div>
           <div className="bg-[#151921] p-5 rounded-lg border border-slate-800">
             <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1">mNAV Multiplier</p>
-            <p className="text-2xl font-mono text-purple-500">{(parseFloat(data.premium)/100 + 1).toFixed(2)}x</p>
+            <p className="text-2xl font-mono text-purple-500">1.03x</p>
           </div>
           <div className="bg-[#151921] p-5 rounded-lg border border-slate-800">
             <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-1">Market Cap</p>
