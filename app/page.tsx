@@ -12,6 +12,12 @@ export default function Dashboard() {
   useEffect(() => {
     fetch('/api/data').then(res => res.json()).then(json => setData(json));
   }, []);
+  // Inside your app/page.tsx, make sure this part is solid:
+
+  const currentPremium = data?.premium ? parseFloat(data.premium) : 0;
+  const currentRatio = (currentPremium / 100) + 1;
+
+// Use currentRatio for your chart and metrics
 
   const chartData = useMemo(() => {
     if (!data) return [];
