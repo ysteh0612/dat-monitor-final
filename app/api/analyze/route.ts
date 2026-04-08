@@ -4,36 +4,27 @@ import OpenAI from 'openai';
 export async function POST(req: Request) {
   const apiKey = process.env.OPENAI_API_KEY;
   
-  if (!apiKey) {
-    return NextResponse.json({ summary: "API Key is missing. Please add OPENAI_API_KEY to Vercel." });
+  // If the key is missing, the website will now TELL YOU clearly.
+  if (!apiKey || apiKey.includes("placeholder")) {
+    return NextResponse.json({ summary: "ERROR: You have not added a real OpenAI API Key to Vercel Settings." });
   }
 
   const openai = new OpenAI({ apiKey });
 
   try {
     const { premium, btcPrice } = await req.json();
-    const ratio = (parseFloat(premium) / 100) + 1;
 
-    // This is the "Prompt" - we tell the AI exactly how to behave
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { 
-          role: "system", 
-          content: "You are a senior macro strategist at a top-tier investment bank. You specialize in Bitcoin treasury companies." 
-        },
-        { 
-          role: "user", 
-          content: `Bitcoin is currently trading at $${btcPrice}. The company's mNAV ratio is ${ratio.toFixed(2)}x (which is a ${premium}% premium). Provide a 3-sentence professional market outlook. Do not mention that you are an AI.` 
-        }
+        { role: "system", content: "You are a crypto analyst. Give a 3-sentence market insight." },
+        { role: "user", content: `BTC: ${btcPrice}, Premium: ${premium}%` }
       ],
-      temperature: 0.7, // Makes the response more natural
     });
 
-    const aiAnalysis = response.choices[0].message.content;
-
-    return NextResponse.json({ summary: aiAnalysis });
+    return NextResponse.json({ summary: response.choices[0].message.content });
   } catch (error: any) {
-    return NextResponse.json({ summary: "AI Engine Error: " + error.message });
+    // This sends the specific OpenAI error (like 'Out of credits') to your screen
+    return NextResponse.json({ summary: "OpenAI Error: " + error.message });
   }
 }
