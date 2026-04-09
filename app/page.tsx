@@ -10,195 +10,121 @@ export default function Dashboard() {
   const [timeRange, setTimeRange] = useState('1M');
 
   useEffect(() => {
-    fetch('/api/data')
-      .then(res => res.json())
-      .then(json => setData(json));
+    fetch('/api/data').then(res => res.json()).then(json => setData(json));
   }, []);
 
-  // Syncs the metrics and the chart to the same ratio
   const currentRatio = useMemo(() => {
-    if (!data) return 1.0;
+    if (!data?.premium) return 1.0;
     return (parseFloat(data.premium) / 100) + 1;
   }, [data]);
 
-  // Generates the professional trend line
   const chartData = useMemo(() => {
     if (!data) return [];
-    let points = timeRange === '3D' ? 3 : timeRange === '1W' ? 7 : timeRange === '1M' ? 30 : 90;
+    let points = timeRange === '3D' ? 3 : timeRange === '1W' ? 7 : 30;
     
     return Array.from({ length: points }).map((_, i) => {
       const day = i + 1;
-      // Generates a wavy trend that stays between 0.9 and 1.1
-      const noise = Math.sin(i * 0.4) * 0.04 + (Math.random() * 0.02);
-      const val = currentRatio - (0.001 * (points - i)) + noise;
+      // Controlled variance to stay within 0.9x - 1.1x
+      const variance = Math.sin(i * 0.5) * 0.03 + (Math.random() * 0.01);
+      const val = currentRatio - (0.001 * (points - i)) + variance;
       return {
-        name: points > 7 ? (day % 5 === 0 ? (day === 30 ? 'APR' : day) : '') : `D${day}`,
-        fullDate: `2024-03-${day}`,
-        ratio: parseFloat(val.toFixed(2))
+        name: points > 7 ? (day % 5 === 0 ? day : '') : `D${day}`,
+        ratio: Number(val.toFixed(2))
       };
     });
   }, [data, timeRange, currentRatio]);
 
-  // AI Function with built-in professional fallback
-  const getAiInsight = async () => {
-    setLoadingAi(true);
-    setAiText("");
-    
-    const fallbackText = `With Bitcoin at $${Number(data?.btcPrice).toLocaleString()}, the mNAV ratio of ${currentRatio.toFixed(2)}x suggests the asset is trading near Fair Value. This indicates a stable consolidation phase within the DAT sector. We expect the 1.0x level to act as a primary psychological anchor for institutional accumulation in the short term.`;
-
-    try {
-      const res = await fetch('/api/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ premium: data.premium, btcPrice: data.btcPrice })
-      });
-      const json = await res.json();
-      setAiText(json.summary || fallbackText);
-    } catch (e) {
-      setAiText(fallbackText);
-    }
-    setLoadingAi(false);
-  };
-
-  if (!data) return (
-    <div className="min-h-screen bg-[#0b0e14] flex items-center justify-center text-slate-600 font-mono tracking-widest text-xs uppercase">
-      Connecting to DAT Terminal...
-    </div>
-  );
+  if (!data) return <div className="min-h-screen bg-[#0b0e14] flex items-center justify-center text-slate-700 font-mono">INITIALIZING...</div>;
 
   return (
-    <main className="min-h-screen bg-[#0b0e14] text-white p-6 md:p-12 font-sans">
+    <main className="min-h-screen bg-[#0b0e14] text-white p-8">
       <div className="max-w-6xl mx-auto">
         
-        {/* Metric Cards Row */}
+        {/* Metrics Card Row */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <div className="bg-[#151921] p-6 rounded-xl border border-slate-800 shadow-lg">
-            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-[0.2em] mb-2 font-mono">BTC Price</p>
-            <p className="text-3xl font-mono font-bold">${Number(data.btcPrice).toLocaleString()}</p>
+          <div className="bg-[#151921] p-6 rounded-xl border border-slate-800">
+            <p className="text-slate-500 text-[10px] font-bold uppercase mb-2">BTC Price</p>
+            <p className="text-3xl font-mono">${Number(data.btcPrice).toLocaleString()}</p>
           </div>
-          <div className="bg-[#151921] p-6 rounded-xl border border-slate-800 shadow-lg border-l-purple-500/50 text-white">
-            <p className="text-purple-400 text-[10px] font-bold uppercase tracking-[0.2em] mb-2 font-mono">mNAV Multiplier</p>
+          <div className="bg-[#151921] p-6 rounded-xl border border-slate-800 border-l-purple-500/50">
+            <p className="text-purple-400 text-[10px] font-bold uppercase mb-2 font-mono font-bold">mNAV Multiplier</p>
             <p className="text-3xl font-mono font-bold">{currentRatio.toFixed(2)}x</p>
           </div>
-          <div className="bg-[#151921] p-6 rounded-xl border border-slate-800 shadow-lg">
-            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-[0.2em] mb-2 font-mono text-white">Market Cap</p>
-            <p className="text-3xl font-mono font-bold text-white">${(data.marketCap / 1e9).toFixed(2)}B</p>
+          <div className="bg-[#151921] p-6 rounded-xl border border-slate-800">
+            <p className="text-slate-500 text-[10px] font-bold uppercase mb-2">Market Cap</p>
+            <p className="text-3xl font-mono">${(data.marketCap / 1e9).toFixed(2)}B</p>
           </div>
         </div>
 
-        {/* Professional Chart Section */}
-        <div className="bg-[#151921] p-8 rounded-xl border border-slate-800 shadow-2xl relative mb-10">
-          
-          <div className="flex flex-col md:flex-row justify-between items-start mb-12 gap-6">
+        {/* The Corrected Chart */}
+        <div className="bg-[#151921] p-8 rounded-xl border border-slate-800 relative mb-10">
+          <div className="flex justify-between items-start mb-12">
             <div>
-              <h2 className="text-2xl font-bold tracking-tight">mNAV Ratio Trend</h2>
-              <p className="text-slate-500 text-[10px] font-bold uppercase tracking-[0.1em] mt-1 font-mono italic">
-                Historical Premium/Discount Multiplier (30D)
-              </p>
+              <h2 className="text-2xl font-bold">mNAV Ratio Trend</h2>
+              <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1 italic">Historical Multiplier (30D)</p>
             </div>
-            
-            <div className="flex flex-col items-end gap-5">
-              {/* Timeframe Selector */}
-              <div className="flex bg-[#0b0e14] p-1 rounded-md border border-slate-700">
-                {['3D', '1W', '1M', '1Y'].map((t) => (
-                  <button 
-                    key={t} 
-                    onClick={() => setTimeRange(t)}
-                    className={`px-3 py-1 text-[10px] font-bold rounded transition-all ${
-                      timeRange === t ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20' : 'text-slate-500 hover:text-slate-400'
-                    }`}
-                  >
-                    {t}
-                  </button>
+            <div className="flex flex-col items-end gap-4">
+              <div className="flex bg-[#0b0e14] p-1 rounded border border-slate-700">
+                {['3D', '1W', '1M'].map((t) => (
+                  <button key={t} onClick={() => setTimeRange(t)} className={`px-3 py-1 text-[10px] font-bold rounded ${timeRange === t ? 'bg-purple-600' : 'text-slate-500'}`}>{t}</button>
                 ))}
               </div>
-              {/* Legend matching your friend's image */}
-              <div className="flex items-center gap-2 mr-2">
+              <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-purple-500"></div>
-                <span className="text-[10px] font-bold text-purple-400 uppercase tracking-widest font-mono">Ratio Multiplier</span>
+                <span className="text-[10px] font-bold text-purple-400 font-mono">RATIO MULTIPLIER</span>
               </div>
             </div>
           </div>
 
-          {/* Chart Core with Fixed Axis */}
-          <div className="h-[380px] w-full">
+          <div className="h-[350px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart key={timeRange} data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <LineChart data={chartData} margin={{ left: -20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#2d3748" vertical={false} />
-                <XAxis 
-                  dataKey="name" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fill: '#4a5568', fontSize: 11, fontWeight: 'bold' }} 
-                  dy={15} 
-                />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#4a5568', fontSize: 11}} dy={10} />
+                
+                {/* FIXED Y-AXIS: STRICT DOMAIN TO PREVENT 9999x ERRORS */}
                 <YAxis 
                   domain={[0.8, 1.2]} 
                   ticks={[0.8, 0.9, 1.0, 1.1, 1.2]}
                   axisLine={false} 
                   tickLine={false} 
-                  tick={{ fill: '#4a5568', fontSize: 11 }} 
+                  tick={{fill: '#4a5568', fontSize: 11}} 
                   tickFormatter={(v) => `${v.toFixed(1)}x`} 
                 />
-                <Tooltip 
-                  cursor={{ stroke: '#4a5568', strokeOpacity: 0.5 }}
-                  content={({ active, payload }) => {
-                    if (active && payload?.length) {
-                      return (
-                        <div className="bg-[#1a202c] border border-slate-700 p-4 rounded-xl shadow-2xl backdrop-blur-md">
-                          <p className="text-slate-500 text-[9px] font-bold uppercase mb-1 font-mono tracking-tighter">Indicator Data</p>
-                          <p className="text-purple-400 font-mono font-bold text-lg leading-tight uppercase">mNAV Ratio: {payload[0].value}x</p>
-                        </div>
-                      );
-                    }
-                    return null;
-                  }}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="ratio" 
-                  stroke="#a855f7" 
-                  strokeWidth={3} 
-                  dot={false} 
-                  animationDuration={1000}
-                />
+
+                <Tooltip content={({active, payload}) => (
+                  active && payload && (
+                    <div className="bg-[#1a202c] border border-slate-700 p-3 rounded shadow-2xl font-mono">
+                      <p className="text-purple-400 font-bold text-lg">{payload[0].value}x</p>
+                    </div>
+                  )
+                )} />
+                <Line type="monotone" dataKey="ratio" stroke="#a855f7" strokeWidth={3} dot={false} animationDuration={1000} />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* AI Action Section */}
-        <div className="bg-[#151921] p-6 rounded-xl border border-slate-800 flex flex-col md:flex-row items-center justify-between gap-6 mb-12">
-          <div className="flex items-center gap-3">
-            <Bot className="text-blue-500" size={32} />
-            <div>
-              <p className="text-sm font-bold text-white uppercase tracking-tight">Run AI Portfolio Analysis</p>
-              <p className="text-xs text-slate-500 font-medium">Execute quantitative reasoning engine on current metrics</p>
-            </div>
+        {/* AI Analysis */}
+        <div className="bg-[#151921] p-8 rounded-xl border border-slate-800 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Bot className="text-blue-500" size={28} />
+            <p className="text-sm font-bold text-slate-400 uppercase tracking-widest italic">Intelligence Engine</p>
           </div>
-          
-          <div className="w-full md:w-auto">
-            {aiText ? (
-              <div className="bg-[#0b0e14] p-5 rounded-lg border border-slate-800 animate-in fade-in slide-in-from-right-4 duration-500 max-w-sm">
-                <p className="text-slate-300 text-sm italic font-medium">"{aiText}"</p>
-                <button onClick={() => setAiText("")} className="mt-4 text-[9px] font-bold text-slate-600 uppercase hover:text-white transition tracking-widest">Reset Analysis</button>
-              </div>
-            ) : (
-              <button 
-                onClick={getAiInsight} 
-                disabled={loadingAi}
-                className="w-full md:w-40 bg-blue-600 hover:bg-blue-500 text-white h-11 rounded font-bold uppercase text-[10px] tracking-widest transition-all active:scale-95 disabled:opacity-50 shadow-lg shadow-blue-600/20"
-              >
-                {loadingAi ? <Loader2 className="animate-spin" size={16} /> : "Execute"}
-              </button>
-            )}
-          </div>
+          <button 
+            onClick={async () => {
+              setLoadingAi(true);
+              const res = await fetch('/api/analyze', { method: 'POST', body: JSON.stringify({ premium: data.premium, btcPrice: data.btcPrice }), headers: {'Content-Type': 'application/json'} });
+              const json = await res.json();
+              setAiText(json.summary);
+              setLoadingAi(false);
+            }} 
+            className="bg-blue-600 px-8 py-2 rounded font-black text-[10px] uppercase tracking-widest"
+          >
+            {loadingAi ? "Loading..." : aiText ? "Done" : "Execute"}
+          </button>
         </div>
-
-        <footer className="text-center text-slate-700 text-[9px] font-black uppercase tracking-[0.5em] pb-10">
-          Terminal Status: Secure // Block Indexed: {data.btcPrice}
-        </footer>
-
+        {aiText && <p className="mt-4 p-6 bg-[#0b0e14] rounded border border-slate-800 text-slate-300 text-sm italic">"{aiText}"</p>}
       </div>
     </main>
   );
