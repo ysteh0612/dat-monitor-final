@@ -7,10 +7,12 @@ export async function GET() {
   try {
     const btcRes = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');
     const btcData = await btcRes.json();
+    // Inside app/api/data/route.ts
     const btcPrice = btcData.bitcoin.usd;
 
-    // CHANGE ONLY THIS NUMBER
-    const mstrPrice = 100.00; 
+// Change this to 80.00 to get a ratio near 1.0
+    const mstrPrice = 80.00; 
+// The math will now be: (~17.8B / ~17.9B) ≈ 0.99x
 
     const nav = MSTR_BTC_HOLDINGS * btcPrice;
     const marketCap = MSTR_SHARES * mstrPrice;
